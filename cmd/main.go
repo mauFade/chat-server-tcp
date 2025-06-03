@@ -5,9 +5,20 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 )
 
-var clients = make(map[string]string)
+type clients struct {
+	mu      sync.RWMutex
+	clients map[string]net.Conn
+}
+
+func (c *clients) addClient(conn net.Conn) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	fmt.Println("Adding client: ", conn.RemoteAddr().String(), conn)
+	c.clients[conn.RemoteAddr().String()] = conn
+}
 
 func main() {
 	listen, err := net.Listen("tcp", ":8080")
@@ -17,7 +28,9 @@ func main() {
 	}
 
 	defer listen.Close()
-
+	CLIENTS := clients{
+		clients: make(map[string]net.Conn),
+	}
 	fmt.Println("Server is running on port 8080")
 
 	for {
@@ -28,14 +41,14 @@ func main() {
 			continue
 		}
 
-		go handleClient(conn)
+		go handleClient(conn, &CLIENTS)
 
 	}
 }
 
-func handleClient(c net.Conn) {
+func handleClient(c net.Conn, clients *clients) {
 	defer c.Close()
-	clients[c.RemoteAddr().String()] = c.RemoteAddr().String()
+	clients.addClient(c)
 
 	reader := bufio.NewReader(c)
 
