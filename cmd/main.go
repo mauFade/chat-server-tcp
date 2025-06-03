@@ -33,8 +33,18 @@ func (c *clients) listClients() {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	for _, c := range c.clients {
-		c.Write([]byte("conn: " + c.RemoteAddr().String() + "\n"))
+	for _, conn := range c.clients {
+		conn.Write([]byte("conn: " + conn.RemoteAddr().String() + "\n"))
+	}
+}
+
+func (c *clients) broadcast(senderConn, message string) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	for _, conn := range c.clients {
+		if conn.RemoteAddr().String() != senderConn {
+			conn.Write([]byte("[" + senderConn + "]: " + message + "\n"))
+		}
 	}
 }
 
@@ -86,9 +96,9 @@ func handleClient(c net.Conn, clients *clients) {
 			switch message {
 			case "/list\n":
 				clients.listClients()
-			default:
-				c.Write([]byte("Received message: " + message))
 			}
+		} else {
+			clients.broadcast(c.RemoteAddr().String(), message)
 		}
 
 	}
