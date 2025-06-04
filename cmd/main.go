@@ -7,46 +7,9 @@ import (
 	"net"
 	"slices"
 	"strings"
-	"sync"
+
+	"github.com/mauFade/chat-server-tcp/internal/models"
 )
-
-type clients struct {
-	mu      sync.RWMutex
-	clients map[string]net.Conn
-}
-
-func (c *clients) addClient(conn net.Conn) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	fmt.Println("Adding client: ", conn.RemoteAddr().String())
-	c.clients[conn.RemoteAddr().String()] = conn
-}
-
-func (c *clients) removeClient(strConn string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	fmt.Println("Removed client: ", strConn)
-	delete(c.clients, strConn)
-}
-
-func (c *clients) listClients() {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	for _, conn := range c.clients {
-		conn.Write([]byte("conn: " + conn.RemoteAddr().String() + "\n"))
-	}
-}
-
-func (c *clients) broadcast(senderConn, message string) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	for _, conn := range c.clients {
-		if conn.RemoteAddr().String() != senderConn {
-			conn.Write([]byte("[" + senderConn + "]: " + message + "\n"))
-		}
-	}
-}
 
 func main() {
 	listen, err := net.Listen("tcp", ":8080")
@@ -56,9 +19,10 @@ func main() {
 	}
 
 	defer listen.Close()
-	CLIENTS := clients{
-		clients: make(map[string]net.Conn),
+	CLIENTS := models.Client{
+		Clients: make(map[string]net.Conn),
 	}
+
 	fmt.Println("Server is running on port 8080")
 
 	for {
@@ -73,9 +37,9 @@ func main() {
 	}
 }
 
-func handleClient(c net.Conn, clients *clients) {
+func handleClient(c net.Conn, clients *models.Client) {
 	defer c.Close()
-	clients.addClient(c)
+	clients.AddClient(c)
 
 	reader := bufio.NewReader(c)
 
@@ -88,17 +52,17 @@ func handleClient(c net.Conn, clients *clients) {
 
 		if err != nil {
 			// fmt.Println("Error reading message: ", err.Error())
-			clients.removeClient(c.RemoteAddr().String())
+			clients.RemoveClient(c.RemoteAddr().String())
 			return
 		}
 
 		if strings.HasPrefix(message, "/") && slices.Contains(commands, message) {
 			switch message {
 			case "/list\n":
-				clients.listClients()
+				clients.ListClients()
 			}
 		} else {
-			clients.broadcast(c.RemoteAddr().String(), message)
+			clients.Broadcast(c.RemoteAddr().String(), message)
 		}
 
 	}
