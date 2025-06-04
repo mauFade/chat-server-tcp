@@ -11,17 +11,24 @@ type Client struct {
 	Clients map[net.Conn]string
 }
 
-func (c *Client) AddClient(conn net.Conn) {
+func (c *Client) AddClient(conn net.Conn, nickname string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	fmt.Println("Adding client: ", conn.RemoteAddr().String())
-	c.Clients[conn] = conn.RemoteAddr().String()
+	fmt.Println("Adding client: ", nickname)
+	c.Clients[conn] = nickname
 }
 
 func (c *Client) RemoveClient(conn net.Conn) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	fmt.Println("Removed client: ", conn.RemoteAddr().String())
+
+	senderName, ok := c.Clients[conn]
+
+	if !ok {
+		senderName = conn.RemoteAddr().String()
+	}
+
+	fmt.Println("Removed client: ", senderName)
 	delete(c.Clients, conn)
 }
 
@@ -39,8 +46,8 @@ func (c *Client) Broadcast(senderConn net.Conn, message string) {
 	defer c.mu.RUnlock()
 	senderName := c.Clients[senderConn]
 	for conn := range c.Clients {
-		if conn.RemoteAddr().String() != senderConn.RemoteAddr().String() {
-			conn.Write([]byte("[" + senderName + "]: " + message + "\n"))
-		}
+		// if conn.RemoteAddr().String() != senderConn.RemoteAddr().String() {
+		conn.Write([]byte("[" + senderName + "]: " + message + "\n"))
+		// }
 	}
 }

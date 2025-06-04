@@ -39,17 +39,20 @@ func main() {
 
 func handleClient(c net.Conn, clients *models.Client) {
 	defer c.Close()
-	clients.AddClient(c)
-
 	reader := bufio.NewReader(c)
+	c.Write([]byte("Enter your nickname:"))
+	nick, _ := reader.ReadString('\n')
+	nick = strings.TrimSpace(nick)
+	clients.AddClient(c, nick)
 
 	commands := []string{
-		"/list\n", // List connections
+		"/list", // List connections
+		"/quit", // quit chat
 	}
 
 	for {
 		message, err := reader.ReadString('\n')
-
+		message = strings.TrimSpace(message)
 		if err != nil {
 			clients.RemoveClient(c)
 			return
@@ -57,7 +60,7 @@ func handleClient(c net.Conn, clients *models.Client) {
 
 		if strings.HasPrefix(message, "/") && slices.Contains(commands, message) {
 			switch message {
-			case "/list\n":
+			case "/list":
 				clients.ListClients()
 			}
 		} else {
