@@ -20,7 +20,7 @@ func main() {
 
 	defer listen.Close()
 	CLIENTS := models.Client{
-		Clients: make(map[string]net.Conn),
+		Clients: make(map[net.Conn]string),
 	}
 
 	fmt.Println("Server is running on port 8080")
@@ -51,8 +51,7 @@ func handleClient(c net.Conn, clients *models.Client) {
 		message, err := reader.ReadString('\n')
 
 		if err != nil {
-			// fmt.Println("Error reading message: ", err.Error())
-			clients.RemoveClient(c.RemoteAddr().String())
+			clients.RemoveClient(c)
 			return
 		}
 
@@ -62,7 +61,7 @@ func handleClient(c net.Conn, clients *models.Client) {
 				clients.ListClients()
 			}
 		} else {
-			clients.Broadcast(c.RemoteAddr().String(), message)
+			clients.Broadcast(c, message)
 		}
 
 	}
