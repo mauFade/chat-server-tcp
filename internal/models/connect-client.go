@@ -39,9 +39,8 @@ func (c *Client) ListClients(senderConn net.Conn) {
 	name := c.Clients[senderConn]
 	for conn := range c.Clients {
 		if senderConn.RemoteAddr().String() != conn.RemoteAddr().Network() {
-			conn.Write([]byte("user: " + name + ", ip: " + conn.RemoteAddr().String() + "\n"))
+			senderConn.Write([]byte("user: " + name + ", ip: " + conn.RemoteAddr().String() + "\n"))
 		}
-
 	}
 }
 
@@ -51,5 +50,11 @@ func (c *Client) Broadcast(senderConn net.Conn, message string) {
 	senderName := c.Clients[senderConn]
 	for conn := range c.Clients {
 		conn.Write([]byte("[" + senderName + "]: " + message + "\n"))
+	}
+}
+
+func (c *Client) ShowHelp(conn net.Conn, commands []string) {
+	for _, comm := range commands {
+		conn.Write([]byte(comm))
 	}
 }

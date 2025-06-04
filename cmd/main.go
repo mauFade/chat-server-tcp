@@ -64,6 +64,8 @@ func handleClient(c net.Conn, clients *models.Client) {
 				clients.ListClients(c)
 			case "/quit":
 				clients.RemoveClient(c)
+			case "/help":
+				clients.ShowHelp(c, commands)
 			}
 
 		} else {
