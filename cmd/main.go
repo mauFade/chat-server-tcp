@@ -47,7 +47,7 @@ func handleClient(c net.Conn, clients *models.Client) {
 
 	commands := []string{
 		"/list", // List connections
-		"/quit", // quit chat
+		"/quit", // Quit chat
 	}
 
 	for {
@@ -61,8 +61,11 @@ func handleClient(c net.Conn, clients *models.Client) {
 		if strings.HasPrefix(message, "/") && slices.Contains(commands, message) {
 			switch message {
 			case "/list":
-				clients.ListClients()
+				clients.ListClients(c)
+			case "/quit":
+				clients.RemoveClient(c)
 			}
+
 		} else {
 			clients.Broadcast(c, message)
 		}

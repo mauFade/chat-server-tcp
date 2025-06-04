@@ -32,12 +32,16 @@ func (c *Client) RemoveClient(conn net.Conn) {
 	delete(c.Clients, conn)
 }
 
-func (c *Client) ListClients() {
+func (c *Client) ListClients(senderConn net.Conn) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	for conn, name := range c.Clients {
-		conn.Write([]byte("user: " + name + "\n"))
+	name := c.Clients[senderConn]
+	for conn := range c.Clients {
+		if senderConn.RemoteAddr().String() != conn.RemoteAddr().Network() {
+			conn.Write([]byte("user: " + name + ", ip: " + conn.RemoteAddr().String() + "\n"))
+		}
+
 	}
 }
 
@@ -46,8 +50,6 @@ func (c *Client) Broadcast(senderConn net.Conn, message string) {
 	defer c.mu.RUnlock()
 	senderName := c.Clients[senderConn]
 	for conn := range c.Clients {
-		// if conn.RemoteAddr().String() != senderConn.RemoteAddr().String() {
 		conn.Write([]byte("[" + senderName + "]: " + message + "\n"))
-		// }
 	}
 }
