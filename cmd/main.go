@@ -48,6 +48,7 @@ func handleClient(c net.Conn, clients *models.Client) {
 	commands := []string{
 		"/list", // List connections
 		"/quit", // Quit chat
+		"/help", // Show all available commands
 	}
 
 	for {

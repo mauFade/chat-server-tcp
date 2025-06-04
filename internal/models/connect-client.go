@@ -36,8 +36,7 @@ func (c *Client) ListClients(senderConn net.Conn) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	name := c.Clients[senderConn]
-	for conn := range c.Clients {
+	for conn, name := range c.Clients {
 		if senderConn.RemoteAddr().String() != conn.RemoteAddr().Network() {
 			senderConn.Write([]byte("user: " + name + ", ip: " + conn.RemoteAddr().String() + "\n"))
 		}
