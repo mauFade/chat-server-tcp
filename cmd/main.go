@@ -40,15 +40,26 @@ func main() {
 func handleClient(c net.Conn, clients *models.Client) {
 	defer c.Close()
 	reader := bufio.NewReader(c)
-	c.Write([]byte("Enter your nickname:"))
+	c.Write([]byte("Enter your nickname: "))
 	nick, _ := reader.ReadString('\n')
 	nick = strings.TrimSpace(nick)
+
+	if nick == "" || nick == "\n" {
+		c.Write([]byte("Insert a valid nickname!\n"))
+	}
+
 	clients.AddClient(c, nick)
 
 	commands := []string{
 		"/list", // List connections
 		"/quit", // Quit chat
 		"/help", // Show all available commands
+	}
+
+	commandsMap := map[string]string{
+		"/list": "List connections",
+		"/quit": "Quit chat",
+		"/help": "Show all available commands",
 	}
 
 	for {
@@ -66,7 +77,7 @@ func handleClient(c net.Conn, clients *models.Client) {
 			case "/quit":
 				clients.RemoveClient(c)
 			case "/help":
-				clients.ShowHelp(c, commands)
+				clients.ShowHelp(c, commandsMap)
 			}
 
 		} else {

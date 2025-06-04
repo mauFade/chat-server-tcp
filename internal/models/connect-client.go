@@ -14,6 +14,7 @@ type Client struct {
 func (c *Client) AddClient(conn net.Conn, nickname string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
 	fmt.Println("Adding client: ", nickname)
 	c.Clients[conn] = nickname
 }
@@ -52,8 +53,9 @@ func (c *Client) Broadcast(senderConn net.Conn, message string) {
 	}
 }
 
-func (c *Client) ShowHelp(conn net.Conn, commands []string) {
-	for _, comm := range commands {
-		conn.Write([]byte(comm))
+func (c *Client) ShowHelp(conn net.Conn, commands map[string]string) {
+	conn.Write([]byte("\nCommands list:" + "\n\n"))
+	for comm, desc := range commands {
+		conn.Write([]byte(comm + ": " + desc + "\n"))
 	}
 }
