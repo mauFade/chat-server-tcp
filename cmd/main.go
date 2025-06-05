@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -113,10 +114,26 @@ func handleClient(c net.Conn, clients *models.Client) {
 	roomsRepo := repository.NewRoomRepository(client)
 
 	rooms := roomsRepo.FindManyRooms()
-
-	for _, room := range rooms {
-		c.Write([]byte(room.Name + "\n"))
+	c.Write([]byte("select one of the following rooms to be part of: \n\n"))
+	for i, room := range rooms {
+		c.Write([]byte(strconv.Itoa(i+1) + " - " + room.Name + "\n"))
 	}
+	c.Write([]byte("\n[option]: "))
+	roomOpt, _ := reader.ReadString('\n')
+	roomOpt = strings.TrimSpace(roomOpt)
+
+	index, err := strconv.Atoi(roomOpt)
+
+	for err != nil || index < 1 || index > len(rooms) {
+		c.Write([]byte("please enter a valid option: "))
+		roomOpt, _ = reader.ReadString('\n')
+		roomOpt = strings.TrimSpace(roomOpt)
+		index, err = strconv.Atoi(roomOpt)
+	}
+
+	r := rooms[(index - 1)]
+
+	c.Write([]byte(roomOpt + r.Name))
 
 	for {
 		message, err := reader.ReadString('\n')
