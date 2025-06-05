@@ -1,13 +1,13 @@
 services:
   mongodb:
     image: mongo:latest
-    container_name: product-overview-mongodb
+    container_name: chat-server-tcp-mongodb
     ports:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
     environment:
-      - MONGO_INITDB_DATABASE=product-overview-db
+      - MONGO_INITDB_DATABASE=chat-server-tcp-db
 
 volumes:
   mongodb_data:

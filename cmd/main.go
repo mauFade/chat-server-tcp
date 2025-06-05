@@ -2,15 +2,28 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 	"github.com/mauFade/chat-server-tcp/internal/models"
+	"github.com/mauFade/chat-server-tcp/internal/repository"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+func init() {
+	err := godotenv.Load()
+
+	if err != nil {
+		log.Fatal("Error connecting to .env file: " + err.Error())
+	}
+}
 
 func main() {
 	listen, err := net.Listen("tcp", ":8080")
@@ -18,8 +31,8 @@ func main() {
 	if err != nil {
 		log.Fatal("Error listening on port 8080: ", err.Error())
 	}
-
 	defer listen.Close()
+
 	CLIENTS := models.Client{
 		Clients: make(map[net.Conn]string),
 	}
@@ -59,13 +72,30 @@ func handleClient(c net.Conn, clients *models.Client) {
 		nick = strings.TrimSpace(nick)
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_URI")))
+
+	if err != nil {
+		log.Fatal("Erro ao conectar MongoDB:", err)
+	}
+	defer client.Disconnect(ctx)
+
+	userRepo := repository.NewUserRepository(client)
+
 	u := models.User{
-		ID:        uuid.NewString(),
 		Nickname:  nick,
 		Room:      "",
 		LastIP:    c.RemoteAddr().String(),
 		CreatedAt: time.Now(),
 	}
+
+	err = userRepo.CreateUser(u)
+	if err != nil {
+		c.Write([]byte("Error creating user: " + err.Error()))
+	}
+	c.Write([]byte("Sucessfully created user! Welcome!\n"))
 
 	clients.AddClient(c, nick)
 

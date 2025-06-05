@@ -13,10 +13,10 @@ type UserRepository struct {
 	collection *mongo.Collection
 }
 
-func NewUserRepository(client *mongo.Client, dbName string) *UserRepository {
+func NewUserRepository(client *mongo.Client) *UserRepository {
 	return &UserRepository{
 		client:     client,
-		collection: client.Database(dbName).Collection("users"),
+		collection: client.Database("chat-server-tcp-db").Collection("users"),
 	}
 }
 
