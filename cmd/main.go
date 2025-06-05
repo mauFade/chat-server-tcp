@@ -101,6 +101,7 @@ func handleClient(c net.Conn, clients *models.Client) {
 			c.Write([]byte("Error creating user: " + err.Error()))
 		}
 		c.Write([]byte("Sucessfully created user! Welcome!\n"))
+		existingUser = &u
 	}
 
 	clients.AddClient(c, nick)
@@ -111,31 +112,35 @@ func handleClient(c net.Conn, clients *models.Client) {
 		"/help": "Show all available commands",
 	}
 
-	roomsRepo := repository.NewRoomRepository(client)
+	if existingUser.Room == "" {
+		roomsRepo := repository.NewRoomRepository(client)
 
-	rooms := roomsRepo.FindManyRooms()
-	c.Write([]byte("select one of the following rooms to be part of: \n\n"))
-	for i, room := range rooms {
-		c.Write([]byte(strconv.Itoa(i+1) + " - " + room.Name + "\n"))
-	}
-	c.Write([]byte("\n[option]: "))
-	roomOpt, _ := reader.ReadString('\n')
-	roomOpt = strings.TrimSpace(roomOpt)
-
-	index, err := strconv.Atoi(roomOpt)
-
-	for err != nil || index < 1 || index > len(rooms) {
-		c.Write([]byte("please enter a valid option: "))
-		roomOpt, _ = reader.ReadString('\n')
+		rooms := roomsRepo.FindManyRooms()
+		c.Write([]byte("select one of the following rooms to be part of: \n\n"))
+		for i, room := range rooms {
+			c.Write([]byte(strconv.Itoa(i+1) + " - " + room.Name + "\n"))
+		}
+		c.Write([]byte("\n[option]: "))
+		roomOpt, _ := reader.ReadString('\n')
 		roomOpt = strings.TrimSpace(roomOpt)
-		index, err = strconv.Atoi(roomOpt)
+
+		index, err := strconv.Atoi(roomOpt)
+
+		for err != nil || index < 1 || index > len(rooms) {
+			c.Write([]byte("please enter a valid option: "))
+			roomOpt, _ = reader.ReadString('\n')
+			roomOpt = strings.TrimSpace(roomOpt)
+			index, err = strconv.Atoi(roomOpt)
+		}
+
+		r := rooms[(index - 1)]
+
+		existingUser.Room = r.Name
+		userRepo.UpdateUserRoom(existingUser.ID, r.Name)
 	}
-
-	r := rooms[(index - 1)]
-
-	c.Write([]byte(roomOpt + r.Name))
 
 	for {
+		c.Write([]byte("[" + existingUser.Nickname + " at room: (" + existingUser.Room + ")]: "))
 		message, err := reader.ReadString('\n')
 		message = strings.TrimSpace(message)
 		if err != nil {

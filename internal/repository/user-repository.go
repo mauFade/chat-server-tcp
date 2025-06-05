@@ -43,3 +43,18 @@ func (r *UserRepository) FindByNickname(nick string) *models.User {
 
 	return u
 }
+
+func (r *UserRepository) UpdateUserRoom(userID bson.ObjectID, room string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	filter := bson.M{"_id": userID}
+	update := bson.M{
+		"$set": bson.M{
+			"current_room": room,
+		},
+	}
+
+	_, err := r.collection.UpdateOne(ctx, filter, update)
+	return err
+}
