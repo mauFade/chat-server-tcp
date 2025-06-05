@@ -13,8 +13,9 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/mauFade/chat-server-tcp/internal/models"
 	"github.com/mauFade/chat-server-tcp/internal/repository"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func init() {
@@ -72,19 +73,23 @@ func handleClient(c net.Conn, clients *models.Client) {
 		nick = strings.TrimSpace(nick)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_URI")))
+	client, err := mongo.Connect(options.Client().ApplyURI(os.Getenv("MONGO_URI")))
 
 	if err != nil {
 		log.Fatal("Erro ao conectar MongoDB:", err)
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	defer client.Disconnect(ctx)
 
 	userRepo := repository.NewUserRepository(client)
 
+	userr := userRepo.FindByNickname(nick)
+
+	fmt.Println(userr)
+
 	u := models.User{
+		ID:        bson.NewObjectID(),
 		Nickname:  nick,
 		Room:      "",
 		LastIP:    c.RemoteAddr().String(),

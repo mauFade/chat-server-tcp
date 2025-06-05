@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/mauFade/chat-server-tcp/internal/models"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type UserRepository struct {
@@ -26,4 +27,19 @@ func (r *UserRepository) CreateUser(user models.User) error {
 
 	_, err := r.collection.InsertOne(ctx, user)
 	return err
+}
+
+func (r *UserRepository) FindByNickname(nick string) *models.User {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	filter := bson.D{
+		{Key: "nickname", Value: nick},
+	}
+
+	var u *models.User
+
+	_ = r.collection.FindOne(ctx, filter).Decode(&u)
+
+	return u
 }
