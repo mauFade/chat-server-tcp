@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"slices"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/mauFade/chat-server-tcp/internal/models"
 )
 
@@ -41,20 +42,32 @@ func handleClient(c net.Conn, clients *models.Client) {
 	defer c.Close()
 	reader := bufio.NewReader(c)
 	c.Write([]byte("Enter your nickname: "))
+
 	nick, _ := reader.ReadString('\n')
 	nick = strings.TrimSpace(nick)
 
-	if nick == "" || nick == "\n" {
-		c.Write([]byte("Insert a valid nickname!\n"))
+	for nick == "" || len(nick) > 20 || len(nick) < 2 {
+		if nick == "" {
+			c.Write([]byte("Nickname cannot be empty. "))
+		} else if len(nick) > 20 {
+			c.Write([]byte("Nickname too long (max 20 chars). "))
+		} else {
+			c.Write([]byte("Nickname too short (min 2 chars). "))
+		}
+		c.Write([]byte("Please enter a valid nickname: "))
+		nick, _ = reader.ReadString('\n')
+		nick = strings.TrimSpace(nick)
+	}
+
+	u := models.User{
+		ID:        uuid.NewString(),
+		Nickname:  nick,
+		Room:      "",
+		LastIP:    c.RemoteAddr().String(),
+		CreatedAt: time.Now(),
 	}
 
 	clients.AddClient(c, nick)
-
-	commands := []string{
-		"/list", // List connections
-		"/quit", // Quit chat
-		"/help", // Show all available commands
-	}
 
 	commandsMap := map[string]string{
 		"/list": "List connections",
@@ -70,7 +83,9 @@ func handleClient(c net.Conn, clients *models.Client) {
 			return
 		}
 
-		if strings.HasPrefix(message, "/") && slices.Contains(commands, message) {
+		_, isCommand := commandsMap[message]
+
+		if strings.HasPrefix(message, "/") && isCommand {
 			switch message {
 			case "/list":
 				clients.ListClients(c)
