@@ -84,23 +84,23 @@ func handleClient(c net.Conn, clients *models.Client) {
 
 	userRepo := repository.NewUserRepository(client)
 
-	userr := userRepo.FindByNickname(nick)
+	existingUser := userRepo.FindByNickname(nick)
 
-	fmt.Println(userr)
+	if existingUser == nil {
+		u := models.User{
+			ID:        bson.NewObjectID(),
+			Nickname:  nick,
+			Room:      "",
+			LastIP:    c.RemoteAddr().String(),
+			CreatedAt: time.Now(),
+		}
 
-	u := models.User{
-		ID:        bson.NewObjectID(),
-		Nickname:  nick,
-		Room:      "",
-		LastIP:    c.RemoteAddr().String(),
-		CreatedAt: time.Now(),
+		err = userRepo.CreateUser(u)
+		if err != nil {
+			c.Write([]byte("Error creating user: " + err.Error()))
+		}
+		c.Write([]byte("Sucessfully created user! Welcome!\n"))
 	}
-
-	err = userRepo.CreateUser(u)
-	if err != nil {
-		c.Write([]byte("Error creating user: " + err.Error()))
-	}
-	c.Write([]byte("Sucessfully created user! Welcome!\n"))
 
 	clients.AddClient(c, nick)
 
@@ -108,6 +108,14 @@ func handleClient(c net.Conn, clients *models.Client) {
 		"/list": "List connections",
 		"/quit": "Quit chat",
 		"/help": "Show all available commands",
+	}
+
+	roomsRepo := repository.NewRoomRepository(client)
+
+	rooms := roomsRepo.FindManyRooms()
+
+	for _, room := range rooms {
+		c.Write([]byte(room.Name + "\n"))
 	}
 
 	for {
