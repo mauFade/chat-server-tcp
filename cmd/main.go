@@ -35,7 +35,7 @@ func main() {
 	}
 	defer listen.Close()
 
-	CLIENTS := models.Client{
+	cs := models.Client{
 		Clients: make(map[net.Conn]string),
 	}
 
@@ -49,7 +49,7 @@ func main() {
 			continue
 		}
 
-		go handleClient(conn, &CLIENTS)
+		go handleClient(conn, &cs)
 	}
 }
 
