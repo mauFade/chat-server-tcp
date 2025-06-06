@@ -84,6 +84,7 @@ func handleClient(c net.Conn, clients *models.Client) {
 	defer client.Disconnect(ctx)
 
 	userRepo := repository.NewUserRepository(client)
+	messageRepo := repository.NewMessageRepository(client)
 
 	existingUser := userRepo.FindByNickname(nick)
 
@@ -161,6 +162,16 @@ func handleClient(c net.Conn, clients *models.Client) {
 			}
 
 		} else {
+			m := models.Message{
+				ID:           bson.NewObjectID(),
+				Content:      message,
+				Room:         existingUser.Room,
+				UserNickname: existingUser.Nickname,
+				OriginIP:     c.RemoteAddr().String(),
+				CreatedAt:    time.Now(),
+			}
+
+			messageRepo.CreateMessage(m)
 			clients.Broadcast(c, message)
 		}
 
