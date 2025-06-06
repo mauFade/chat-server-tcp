@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   mongodb:
     image: mongo:latest
@@ -8,6 +10,22 @@ services:
       - mongodb_data:/data/db
     environment:
       - MONGO_INITDB_DATABASE=chat-server-tcp-db
+    networks:
+      - app-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chat-server-tcp-app
+    ports:
+      - "8080:8080"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
 
 volumes:
   mongodb_data:
