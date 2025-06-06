@@ -140,6 +140,17 @@ func handleClient(c net.Conn, clients *models.Client) {
 		userRepo.UpdateUserRoom(existingUser.ID, r.Name)
 	}
 
+	ms, err := messageRepo.FindByRoom(existingUser.Room)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	if len(ms) > 0 {
+		for _, m := range ms {
+			c.Write([]byte("[" + m.UserNickname + " at room: (" + m.Room + ")]: " + m.Content + "\n"))
+		}
+	}
+
 	for {
 		c.Write([]byte("[" + existingUser.Nickname + " at room: (" + existingUser.Room + ")]: "))
 		message, err := reader.ReadString('\n')
