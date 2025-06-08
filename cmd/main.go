@@ -37,7 +37,7 @@ func main() {
 	defer listen.Close()
 
 	cs := models.Client{
-		Clients: make(map[models.Connection]string),
+		Clients: make(map[net.Conn]string),
 	}
 
 	commandHandler := handlers.NewCommandHandler(&cs)

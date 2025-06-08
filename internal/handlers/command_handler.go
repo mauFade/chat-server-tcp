@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/mauFade/chat-server-tcp/internal/models"
@@ -17,7 +18,7 @@ func NewCommandHandler(clients *models.Client) *CommandHandler {
 	}
 }
 
-func (h *CommandHandler) HandleCommand(conn models.Connection, message string) (bool, error) {
+func (h *CommandHandler) HandleCommand(conn net.Conn, message string) (bool, error) {
 	if !strings.HasPrefix(message, "/") {
 		return false, nil
 	}
@@ -53,7 +54,7 @@ func (h *CommandHandler) HandleCommand(conn models.Connection, message string) (
 	return true, nil
 }
 
-func (h *CommandHandler) showHelp(conn models.Connection) {
+func (h *CommandHandler) showHelp(conn net.Conn) {
 	conn.Write([]byte("\nComandos disponíveis:\n"))
 	for _, cmd := range models.Commands {
 		conn.Write([]byte(fmt.Sprintf("%s - %s\n", cmd.Usage, cmd.Description)))
@@ -61,7 +62,7 @@ func (h *CommandHandler) showHelp(conn models.Connection) {
 	conn.Write([]byte("\n"))
 }
 
-func (h *CommandHandler) handleRoomCommand(conn models.Connection, args []string) error {
+func (h *CommandHandler) handleRoomCommand(conn net.Conn, args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("uso: /room [create|join|leave|list] [room_name]")
 	}
@@ -95,7 +96,7 @@ func (h *CommandHandler) handleRoomCommand(conn models.Connection, args []string
 	return nil
 }
 
-func (h *CommandHandler) handleWhisperCommand(conn models.Connection, args []string) error {
+func (h *CommandHandler) handleWhisperCommand(conn net.Conn, args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("uso: /whisper [user] [message]")
 	}
@@ -108,13 +109,13 @@ func (h *CommandHandler) handleWhisperCommand(conn models.Connection, args []str
 	return nil
 }
 
-func (h *CommandHandler) handleMeCommand(conn models.Connection, args []string) error {
+func (h *CommandHandler) handleMeCommand(conn net.Conn, args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("uso: /me [action]")
 	}
 
 	action := strings.Join(args, " ")
-	nickname := h.clients.GetNickname(conn)
+	nickname := h.clients.Clients[conn]
 
 	// Broadcast da ação para todos os usuários
 	h.clients.Broadcast(conn, fmt.Sprintf("* %s %s", nickname, action))
