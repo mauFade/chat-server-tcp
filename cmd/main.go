@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/mauFade/chat-server-tcp/internal/handlers"
 	"github.com/mauFade/chat-server-tcp/internal/models"
 	"github.com/mauFade/chat-server-tcp/internal/repository"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -36,8 +37,10 @@ func main() {
 	defer listen.Close()
 
 	cs := models.Client{
-		Clients: make(map[net.Conn]string),
+		Clients: make(map[models.Connection]string),
 	}
+
+	commandHandler := handlers.NewCommandHandler(&cs)
 
 	fmt.Println("Server is running on port 8080")
 
@@ -49,11 +52,11 @@ func main() {
 			continue
 		}
 
-		go handleClient(conn, &cs)
+		go handleClient(conn, &cs, commandHandler)
 	}
 }
 
-func handleClient(c net.Conn, clients *models.Client) {
+func handleClient(c net.Conn, clients *models.Client, commandHandler *handlers.CommandHandler) {
 	defer c.Close()
 	reader := bufio.NewReader(c)
 	c.Write([]byte("Enter your nickname: "))
@@ -107,12 +110,6 @@ func handleClient(c net.Conn, clients *models.Client) {
 
 	clients.AddClient(c, nick)
 
-	commandsMap := map[string]string{
-		"/list": "List connections",
-		"/quit": "Quit chat",
-		"/help": "Show all available commands",
-	}
-
 	if existingUser.Room == "" {
 		roomsRepo := repository.NewRoomRepository(client)
 
@@ -160,19 +157,15 @@ func handleClient(c net.Conn, clients *models.Client) {
 			return
 		}
 
-		_, isCommand := commandsMap[message]
+		// Verifica se é um comando
+		isCommand, err := commandHandler.HandleCommand(c, message)
+		if err != nil {
+			c.Write([]byte("Error: " + err.Error() + "\n"))
+			continue
+		}
 
-		if strings.HasPrefix(message, "/") && isCommand {
-			switch message {
-			case "/list":
-				clients.ListClients(c)
-			case "/quit":
-				clients.RemoveClient(c)
-			case "/help":
-				clients.ShowHelp(c, commandsMap)
-			}
-
-		} else {
+		// Se não for um comando, processa como mensagem normal
+		if !isCommand {
 			m := models.Message{
 				ID:           bson.NewObjectID(),
 				Content:      message,
@@ -180,11 +173,11 @@ func handleClient(c net.Conn, clients *models.Client) {
 				UserNickname: existingUser.Nickname,
 				OriginIP:     c.RemoteAddr().String(),
 				CreatedAt:    time.Now(),
+				Type:         models.MessageTypeText,
 			}
 
 			messageRepo.CreateMessage(m)
 			clients.Broadcast(c, message)
 		}
-
 	}
 }
